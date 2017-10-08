@@ -11,4 +11,3 @@ Depends: R (>= 3.0.1), fdrtool, Category, BiocGenerics, methods,
 License: Artistic-2.0
 biocViews: AnnotationData, FunctionalAnnotation, Bioinformatics,
         Statistics, Annotation, MultipleComparisons, MeSHDb
-Packaged: 2015-06-4 09:00:18 UTC; tsuyusakikouki
