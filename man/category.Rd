@@ -25,4 +25,8 @@ category(r) <- value
 }
 \author{Koki Tsuyuzaki}
 
+\examples{
+showMethods("category")
+}
+
 \keyword{methods}

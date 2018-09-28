@@ -25,4 +25,8 @@ database(r) <- value
 }
 \author{Koki Tsuyuzaki}
 
+\examples{
+showMethods("database")
+}
+
 \keyword{methods}
