@@ -13,6 +13,7 @@ import(org.Hs.eg.db)
 import(Category)
 import(S4Vectors)
 
+importFrom(RSQLite, dbGetQuery)
 importFrom(stats, p.adjust)
 importFrom(utils, data, download.file, read.delim, setTxtProgressBar, txtProgressBar)
 importFrom(BiocGenerics, annotation, "annotation<-")

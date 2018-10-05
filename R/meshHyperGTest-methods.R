@@ -15,29 +15,40 @@ setMethod("meshHyperGTest", signature(p="MeSHHyperGParams"),
   universe.geneids <- as.data.frame(p@universeGeneIds)
   names(geneids) <- "GENEID"
   names(universe.geneids) <- "GENEID"
-  selectedDatabase <- select(eval(parse(text=p@annotation)), keys = p@database, columns = c("GENEID", "MESHID","MESHCATEGORY", "SOURCEID"), keytype = "SOURCEDB")
-  selectedDatabase <- selectedDatabase[which(selectedDatabase[,3] == p@category), c(1:2,4)]
-  selectedDatabase <- as.data.frame(selectedDatabase)
+  query <- paste0("SELECT GENEID, MESHID, SOURCEID FROM DATA WHERE MESHCATEGORY = '",
+    p@category, "' AND SOURCEDB = '", p@database, "';")
+  selectedDatabase <- unique(dbGetQuery(dbconn(eval(parse(text=p@annotation))), query))
   selected.mesh <- table(merge(geneids, unique(selectedDatabase[,1:2]), "GENEID")[,2])
   universe.mesh <- table(merge(universe.geneids, unique(selectedDatabase[,1:2]), "GENEID")[,2])
 
   ## Hypergeometric test
-  outputA <- data.frame()
-  length(outputA) <- 6
-  for(i in 1:length(selected.mesh)){
+  tmp <- sapply(selected.mesh, function(i){
     numWdrawn <- selected.mesh[i]
     numW <- universe.mesh[which(names(selected.mesh[i])==names(universe.mesh))]
     numB <- length(p@universeGeneIds) - numW
     numDrawn <- length(p@geneIds)
     scores <- Category:::.doHyperGInternal(numW, numB, numDrawn, numWdrawn, over=T)
     ## Assign statistics
-    outputA <- rbind(outputA, data.frame(names(selected.mesh[i]), as.numeric(scores$p), as.numeric(scores$odds), as.numeric(scores$expected), as.numeric(numWdrawn), as.numeric(numW), stringsAsFactors = F))
-  }
-  colnames(outputA) <- c("MESHID", "Pvalue", "OddsRatio", "ExpCount", "Count", "Size")
+    list(
+      names(selected.mesh[i]),
+      as.numeric(scores$p),
+      as.numeric(scores$odds),
+      as.numeric(scores$expected),
+      as.numeric(numWdrawn),
+      as.numeric(numW)
+      )
+   })
+   outputA <- data.frame(
+      MESHID = as.character(unlist(tmp[1,])),
+      Pvalue = as.numeric(unlist(tmp[2,])),
+      OddsRatio = as.numeric(unlist(tmp[3,])),
+      ExpCount = as.numeric(unlist(tmp[4,])),
+      Count = as.numeric(unlist(tmp[5,])),
+      Size = as.numeric(unlist(tmp[6,]))
+      )
 
   ## Multiple testing correction
   Pvalue <- outputA$Pvalue
-
   stats <- switch(p@pAdjust,
     BH = {
       p.adjust(Pvalue, "BH")},
@@ -70,30 +81,44 @@ setMethod("meshHyperGTest", signature(p="MeSHHyperGParams"),
       warning("None of MeSH Term is significant !")
     }
 
-  FromMeSHdb <- select(MeSH.db, keys=names(selected.mesh), columns=c('MESHID', 'MESHTERM'), keytype='MESHID')
+  out2 <- dbGetQuery(dbconn(MeSH.db), "SELECT * FROM DATA;")
+  tmp2 <- sapply(names(selected.mesh), function(i){
+    target <- which(out2$MESHID == i)
+    unique(out2[target, c("MESHID", "MESHTERM")])
+  })
+  FromMeSHdb <- data.frame(
+    MESHID=unlist(tmp2["MESHID", ]),
+    MESHTERM=unlist(tmp2["MESHTERM", ]))
+
+  # FromMeSHdb <- select(MeSH.db, keys=names(selected.mesh), columns=c('MESHID', 'MESHTERM'), keytype='MESHID')
   outputB <- merge(FromMeSHdb, selectedDatabase, by = "MESHID")
   output <- merge(outputA, outputB, by = "MESHID")
   output <- output[order(output$Pvalue), ]
 
   ## Retrieve full name of MeSH category
-  switch(p@category,
-    "A" = {mesh.full.cat <- "Anatomy"},
-    "B" = {mesh.full.cat <- "Organisms"},
-    "C" = {mesh.full.cat <- "Diseases"},
-    "D" = {mesh.full.cat <- "Chemicals and Drugs"},
-    "E" = {mesh.full.cat <- "Analytical, Diagnostic and Therapeutic Techniques and Equipment"},
-    "F" = {mesh.full.cat <- "Psychiatry and Psychology"},
-    "G" = {mesh.full.cat <- "Phenomena and Processes"},
-    "H" = {mesh.full.cat <- "Disciplines and Occupations"},
-    "I" = {mesh.full.cat <- "Anthropology, Education, Sociology and Social Phenomena"},
-    "J" = {mesh.full.cat <- "Technology and Food and Beverages"},
-    "K" = {mesh.full.cat <- "Humanities"},
-    "L" = {mesh.full.cat <- "Information Science"},
-    "M" = {mesh.full.cat <- "Persons"},
-    "N" = {mesh.full.cat <- "Health Care"},
-    "V" = {mesh.full.cat <- "Publication Type"},
-    "Z" = {mesh.full.cat <- "Geographical Locations"}
+  mesh.full.cat <- c(
+     "Anatomy",
+     "Organisms",
+     "Diseases",
+     "Chemicals and Drugs",
+     "Analytical, Diagnostic and Therapeutic Techniques and Equipment",
+     "Psychiatry and Psychology",
+     "Phenomena and Processes",
+     "Disciplines and Occupations",
+     "Anthropology, Education, Sociology and Social Phenomena",
+     "Technology and Food and Beverages",
+     "Humanities",
+     "Information Science",
+     "Persons",
+     "Health Care",
+     "Publication Type",
+     "Geographical Locations"
   )
+  names(mesh.full.cat) <- c(
+     "A", "B", "C", "D", "E", "F", "G", "H",
+     "I", "J", "K", "L", "M", "N", "V", "Z"
+  )
+  mesh.full.cat <- mesh.full.cat[p@category]
 
   new("MeSHHyperGResult",
       meshCategory=mesh.full.cat,
