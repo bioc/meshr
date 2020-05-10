@@ -22,7 +22,7 @@ setMethod("meshHyperGTest", signature(p="MeSHHyperGParams"),
   universe.mesh <- table(merge(universe.geneids, unique(selectedDatabase[,1:2]), "GENEID")[,2])
 
   ## Hypergeometric test
-  tmp <- sapply(selected.mesh, function(i){
+  tmp <- sapply(names(selected.mesh), function(i){
     numWdrawn <- selected.mesh[i]
     numW <- universe.mesh[which(names(selected.mesh[i])==names(universe.mesh))]
     numB <- length(p@universeGeneIds) - numW
