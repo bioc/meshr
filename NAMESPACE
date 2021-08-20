@@ -1,15 +1,6 @@
 import(methods)
 import(fdrtool)
-import(MeSH.db)
-import(MeSH.AOR.db)
-import(MeSH.PCR.db)
 import(MeSHDbi)
-import(MeSH.Hsa.eg.db)
-import(MeSH.Aca.eg.db)
-import(MeSH.Bsu.168.eg.db)
-import(MeSH.Syn.eg.db)
-import(cummeRbund)
-import(org.Hs.eg.db)
 import(Category)
 import(S4Vectors)
 
@@ -28,7 +19,6 @@ exportMethods(## Results
               "meshDatabase",
               "show",
               "summary",
-              "save.pdf",
 
               ## Params
               "initialize",
